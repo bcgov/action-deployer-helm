@@ -22,8 +22,8 @@ jobs:
         uses: ./
         with:
           directory: charts/init
-          namespace: ${{ secrets.OC_NAMESPACE }}
-          server: ${{ secrets.OC_SERVER }}
+          namespace: ${{ vars.OC_NAMESPACE }}
+          server: ${{ vars.OC_SERVER }}
           token: ${{ secrets.OC_TOKEN }}
           parameters:
             --set zone=${{ github.event.number }} --set name=${{ github.event.repository.name }}
