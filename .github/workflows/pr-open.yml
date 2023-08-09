@@ -29,4 +29,5 @@ jobs:
             --set ZONE=${{ github.event.number }} --set NAME=${{ github.event.repository.name }}
             --set repo=quickstart-openshift 
           release: ${{ github.event.repository.name }}-${{ github.event.number }}
-          repository: bcgov/quickstart-openshift@feat/subcharts
+          repository: bcgov/quickstart-openshift
+          branch: feat/subcharts
