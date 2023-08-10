@@ -100,7 +100,7 @@ runs:
         oc project ${{ inputs.namespace }}
 
         helm upgrade ${{ inputs.release }} ${{ inputs.directory }} -i --atomic --debug ${{ inputs.parameters }} \
-            | sed '/^kind: Secret/,/^[^ ]/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
+          | sed '/^kind: Secret/,/^---/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
 
     # Action repo needs to be present for cleanup/tests
     - name: Checkout to make sure action.yml is present (tests)/
