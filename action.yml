@@ -23,22 +23,27 @@ inputs:
   parameters:
     description: Template parameters/variables to pass (e.g. --set ZONE=...)
     default: ""
+  triggers:
+    description: Omit to always release/deploy, otherwise trigger by path; e.g. ('./backend/' './frontend/)
+
+  ### Optional / not usually required
+  command:
+    description: Optionally, do something other than upgrade
+    default: "upgrade --install --atomic --debug"
   release:
     description: Helm release
     default: ${{ github.event.repository.name }}-${{ github.event.number }}
-  triggers:
-    description: Omit to always build, otherwise trigger by path; e.g. ('./backend/', './frontend/)
 
   ### Usually a bad idea / not recommended
   diff_branch:
-    default: ${{ github.event.repository.default_branch }}
     description: Branch to diff against
+    default: ${{ github.event.repository.default_branch }}
   repository:
-    default: ${{ github.repository }}
     description: Optionally, specify a different repo to clone
+    default: ${{ github.repository }}
   branch:
-    default: ''
     description: Optionally, specify a different branch to clone
+    default: ""
 
 runs:
   using: composite
@@ -96,7 +101,7 @@ runs:
         oc login --token=${{ inputs.token }} --server=${{ inputs.server }}
         oc project ${{ inputs.namespace }}
 
-        helm upgrade ${{ inputs.release }} ${{ inputs.directory }} -i --atomic --debug ${{ inputs.parameters }} \
+        helm ${{ inputs.command }} ${{ inputs.release }} ${{ inputs.directory }} ${{ inputs.parameters }} \
           | sed '/^kind: Secret/,/^---/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
 
     # Action repo needs to be present for cleanup/tests
