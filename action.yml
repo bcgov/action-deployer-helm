@@ -1,5 +1,5 @@
 name: Helm Deployer
-description: Helm deployer with route verification or penetration testing
+description: Helm wrapper with route verification or penetration testing
 branding:
   icon: package
   color: blue
@@ -32,15 +32,15 @@ inputs:
     default: "upgrade --install --atomic --debug"
   release:
     description: Helm release
-    default: ${{ github.event.repository.name }}-${{ github.event.number }}
+    default: "${{ github.event.repository.name }}-${{ github.event.number }}"
 
   ### Usually a bad idea / not recommended
   diff_branch:
     description: Branch to diff against
-    default: ${{ github.event.repository.default_branch }}
+    default: "${{ github.event.repository.default_branch }}"
   repository:
     description: Optionally, specify a different repo to clone
-    default: ${{ github.repository }}
+    default: "${{ github.repository }}"
   branch:
     description: Optionally, specify a different branch to clone
     default: ""
@@ -48,6 +48,7 @@ inputs:
 runs:
   using: composite
   steps:
+    # Clone, for charts
     - uses: actions/checkout@v3
       with:
         repository: ${{ inputs.repository }}
@@ -94,10 +95,7 @@ runs:
       run: |
         # Expand for deployment steps
 
-        # Allow pipefail, since we could be catching oc create errors
-        set +o pipefail
-
-        # Login to OpenShift (NOTE: project command is a safeguard)
+        # Login to OpenShift/Kubernetes (NOTE: project command is a safeguard)
         oc login --token=${{ inputs.token }} --server=${{ inputs.server }}
         oc project ${{ inputs.namespace }}
 
