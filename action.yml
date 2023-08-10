@@ -103,6 +103,6 @@ runs:
           | sed '/^kind: Secret/,/^---/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
 
     # Action repo needs to be present for cleanup/tests
-    - name: Checkout to make sure action.yml is present (tests)/
+    - name: Checkout to make sure action.yml is present (tests)
       if: ${{ github.repository }} != ${{ inputs.repository }}
       uses: actions/checkout@v3
