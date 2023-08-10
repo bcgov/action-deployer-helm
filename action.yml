@@ -99,7 +99,9 @@ runs:
         oc login --token=${{ inputs.token }} --server=${{ inputs.server }}
         oc project ${{ inputs.namespace }}
 
-        helm upgrade ${{ inputs.release }} ${{ inputs.directory }} --install --atomic --wait --debug ${{ inputs.parameters }}
+        helm upgrade ${{ inputs.release }} ${{ inputs.directory }} -i --atomic --debug ${{ inputs.parameters }} \
+            | sed -e '/^data:/,/^[^ ]/{//!d}' -e '/^stringData:/,/^[^ ]/{//!d}' \
+            | sed -e '/^data:/ s/$/ \n  <REDACTED>/' -e '/^stringData:/ s/$/ \n  <REDACTED>/'
 
     # Action repo needs to be present for cleanup/tests
     - name: Checkout to make sure action.yml is present (tests)
