@@ -19,7 +19,7 @@ inputs:
   ### Typical / recommended
   directory:
     descrption: Directory with Helm charts
-    default: "."
+    default: "charts"
   parameters:
     description: Template parameters/variables to pass (e.g. --set ZONE=...)
     default: ""
