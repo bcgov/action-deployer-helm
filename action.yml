@@ -1,0 +1,108 @@
+name: Helm Deployer
+description: Helm wrapper with route verification or penetration testing
+branding:
+  icon: package
+  color: blue
+
+inputs:
+  ### Required
+  namespace:
+    description: OpenShift or Kubernetes namespace (e.g. abc123-dev)
+    required: true
+  server:
+    description: OpenShift or Kubernetes server (e.g. https://api.silver.devops.gov.bc.ca:6443)
+    required: true
+  token:
+    description: OpenShift or Kubernetes access token
+    required: true
+
+  ### Typical / recommended
+  directory:
+    descrption: Directory with Helm charts
+    default: "charts"
+  parameters:
+    description: Template parameters/variables to pass (e.g. --set ZONE=...)
+    default: ""
+  triggers:
+    description: Omit to always release/deploy, otherwise trigger by path; e.g. ('./backend/' './frontend/)
+
+  ### Optional / not usually required
+  command:
+    description: Optionally, do something other than upgrade
+    default: "upgrade --install --atomic --debug"
+  release:
+    description: Helm release
+    default: "${{ github.event.repository.name }}-${{ github.event.number }}"
+
+  ### Usually a bad idea / not recommended
+  diff_branch:
+    description: Branch to diff against
+    default: "${{ github.event.repository.default_branch }}"
+  repository:
+    description: Optionally, specify a different repo to clone
+    default: "${{ github.repository }}"
+  branch:
+    description: Optionally, specify a different branch to clone
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # Clone, for charts
+    - uses: actions/checkout@v3
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.branch }}
+
+    # Process variables and inputs
+    - id: vars
+      shell: bash
+      run: |
+        # Expand for inputs and variables
+
+        # Bug mitigation - OpenShift/Kubernetes hates images with capitals in org/repo names
+        REPO=${{ inputs.repository }}
+        if [[ $REPO != ${REPO,,} ]]; then
+          echo -e "An OpenShift bug prevents capital letters in repo names.\n"
+          echo -e "Please handle that using the `repository` parameter.\n"
+          exit 1
+        fi
+
+        # Triggers
+        TRIGGERS=${{ inputs.triggers }}
+        if [ -z "${TRIGGERS}" ]; then
+          echo "Triggers omitted, deployment required"
+          echo "triggered=true" >> $GITHUB_OUTPUT
+          exit 0
+        else
+          echo "Processing triggers"
+          git fetch origin "${{ inputs.diff_branch }}"
+          while read -r check; do
+            for t in "${TRIGGERS[@]}"; do
+              if [[ "${check}" =~ "${t}" ]]; then
+                  echo -e "Triggered: ${t}\n --> ${check}"
+                  echo "triggered=true" >> $GITHUB_OUTPUT
+                  exit 0
+              fi
+            done
+          done < <(git diff origin/"${{ inputs.diff_branch }}" --name-only)
+        fi
+        echo "Triggers not matched, deployment skipped"
+
+    - if: steps.vars.outputs.triggered
+      shell: bash
+      run: |
+        # Login to OpenShift/Kubernetes (NOTE: project command is a safeguard)
+        oc login --token=${{ inputs.token }} --server=${{ inputs.server }}
+        oc project ${{ inputs.namespace }}
+
+    - if: steps.vars.outputs.triggered
+      shell: bash
+      run: |
+        helm ${{ inputs.command }} ${{ inputs.release }} ${{ inputs.directory }} ${{ inputs.parameters }} \
+          | sed '/^kind: Secret/,/^---/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
+
+    # Action repo needs to be present for cleanup/tests
+    - name: Checkout to make sure action.yml is present (tests)
+      if: ${{ github.repository }} != ${{ inputs.repository }}
+      uses: actions/checkout@v3
