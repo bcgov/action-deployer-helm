@@ -6,9 +6,6 @@ branding:
 
 inputs:
   ### Required
-  chart:
-    description: Chart director (e.g. frontend/openshift.deploy.yml)
-    required: true
   namespace:
     description: OpenShift or Kubernetes namespace (e.g. abc123-dev)
     required: true
@@ -18,9 +15,6 @@ inputs:
   token:
     description: OpenShift or Kubernetes access token
     required: true
-  release:
-    description: Helm release
-    required: true
 
   ### Typical / recommended
   directory:
@@ -29,6 +23,9 @@ inputs:
   parameters:
     description: Template parameters/variables to pass (e.g. --set ZONE=...)
     default: ""
+  release:
+    description: Helm release
+    default: ${{ github.event.repository.name }}-${{ github.event.number }}
   triggers:
     description: Omit to always build, otherwise trigger by path; e.g. ('./backend/', './frontend/)
 

@@ -28,6 +28,5 @@ jobs:
           parameters:
             --set zone=${{ github.event.number }} --set name=${{ github.event.repository.name }}
             --set repo=quickstart-openshift 
-          release: ${{ github.event.repository.name }}-${{ github.event.number }}
           repository: bcgov/quickstart-openshift
           branch: feat/subcharts
