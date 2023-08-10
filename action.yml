@@ -89,16 +89,16 @@ runs:
         fi
         echo "Triggers not matched, deployment skipped"
 
-    - name: Deploy
-      if: steps.vars.outputs.triggered
+    - if: steps.vars.outputs.triggered
       shell: bash
       run: |
-        # Expand for deployment steps
-
         # Login to OpenShift/Kubernetes (NOTE: project command is a safeguard)
         oc login --token=${{ inputs.token }} --server=${{ inputs.server }}
         oc project ${{ inputs.namespace }}
 
+    - if: steps.vars.outputs.triggered
+      shell: bash
+      run: |
         helm ${{ inputs.command }} ${{ inputs.release }} ${{ inputs.directory }} ${{ inputs.parameters }} \
           | sed '/^kind: Secret/,/^---/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
 
