@@ -93,7 +93,7 @@ Create default Secret
 Vault Sideloader Annotations
 */}}
 {{- define "component.vaultAnnotations" -}}
-{{- if .Values.vault.enabled }}
+{{- if and .Values.vault .Values.vault.enabled }}
 # 1. Vault injector configuration goes here, inside the template.
 vault.hashicorp.com/agent-inject: 'true'
 vault.hashicorp.com/agent-inject-token: 'true'

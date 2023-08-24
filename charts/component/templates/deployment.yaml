@@ -7,7 +7,7 @@ metadata:
   labels:
     {{- include "component.labels" . | nindent 4 }}
 spec:
-  {{- if not .Values.autoscaling.enabled }}
+  {{- if not .Values.autoscaling }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
@@ -15,9 +15,13 @@ spec:
       {{- include "component.selectorLabels" . | nindent 6 }}
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
+      {{- if and .Values.vault .Values.vault.enabled }}
       annotations:
-        {{- toYaml . | nindent 8 }}
+        {{- include "component.podAnnotations" . | nindent 8 }}
+        {{- include "component.vaultAnnotations" . | nindent 8 }}
+      {{- else }}
+      annotations:
+        {{- include "component.podAnnotations" . | nindent 8 }}
       {{- end }}
       labels:
         {{- include "component.selectorLabels" . | nindent 8 }}
@@ -26,37 +30,71 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "component.serviceAccountName" . }}
+      {{- if .Values.serviceAccount }}
+      serviceAccountName: {{ .Values.serviceAccount.name }}
+      {{- end }}
+      {{- if .Values.podSecurityContext }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- end }}
+      {{- $configmap := .Values.configmap -}}
+      {{- $secrets := .Values.secret -}}
       {{- if .Values.initContainers }}
       initContainers:
-        {{- toYaml .Values.initContainers | nindent 8 }}
-      {{- end }}
-      containers:
-        - image: {{ include "component.fullname" . }}:{{ .Values.image.tag }}
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
-          name: {{ include "component.fullname" . }}
-          {{- if .Values.vault.enabled}}
-          args:
-            - 'sh'
-            - '-c'
-            - '{{- range $k := .Values.vault.secrets }}source /vault/secrets/{{$k}} && {{- end}}{{ .Values.vault.entrypoint }}'
-          {{- end}}
+      {{- range .Values.initContainers }}
+        - name: {{ .name }}
+          image: {{ .name }}:{{ .tag }}
+          imagePullPolicy: Always
           env:
-          {{- range $k,$v := fromYaml (.Values.configmap.env) }}
-            - name: {{$k}}
+          {{- if $configmap }}
+          {{- range $configmap.data }}
+            - name: {{ .envName }}
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "component.fullname" $ }}
-                  key: {{$k}}
+                  key: {{ .name }}
           {{- end }}
-          {{- range $k,$v := fromYaml (.Values.secret.data) }}
-            - name: {{$k}}
+          {{- end }}
+          {{- if and $secrets }}
+          {{- range $secrets.data }}
+            - name: {{ .envName }}
               valueFrom:
                 secretKeyRef:
                   name: {{ include "component.fullname" $ }}
-                  key: {{$k}}
+                  key: {{ .name }}
+          {{- end }}
+          {{- end }}
+      {{- end }}
+      {{- end }}
+      containers:
+      {{- range .Values.containers }}
+        - name: {{ .name }}
+          image: {{ .name }}:{{ .tag }}
+          imagePullPolicy: Always
+          {{- if and .vault .vault.enabled}} # if vault is enabled for specific container
+          args:
+            - 'sh'
+            - '-c'
+            - '{{- range $k := .vault.secrets }}source /vault/secrets/{{$k}} && {{- end}}{{ .vault.entrypoint }}'
+          {{- end}}
+          env:
+          {{- if $configmap }}
+          {{- range $configmap.data }}
+            - name: {{ .envName }}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "component.fullname" $ }}
+                  key: {{ .name }}
+          {{- end }}
+          {{- end }}
+          {{- if and $secrets }}
+          {{- range $secrets.data }}
+            - name: {{ .envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "component.fullname" $ }}
+                  key: {{ .name }}
+          {{- end }}
           {{- end }}
           {{- if .Values.container.ports}}
           {{- with .Values.container.ports }}
@@ -103,6 +141,7 @@ spec:
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+      {{- end }}
       {{- with .Values.volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}

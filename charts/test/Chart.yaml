@@ -26,11 +26,13 @@ appVersion: "1.0.0"
 
 dependencies:
   - name: component
+    condition: backend.enabled
     repository: "file://../component"
     version: 1.0.0
     alias: backend
 
   - name: component
+    condition: frontend.enabled
     repository: "file://../component"
     version: 1.0.0
     alias: frontend
