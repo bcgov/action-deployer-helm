@@ -1,0 +1,125 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "templates.fullname" . }}
+  labels:
+    {{- include "templates.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "templates.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "templates.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "templates.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- if .Values.initContainers }}
+      initContainers:
+        {{- toYaml .Values.initContainers | nindent 8 }}
+      {{- end }}
+      containers:
+        - image: {{ include "templates.fullname" . }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          name: {{ include "templates.fullname" . }}
+          {{- if .Values.vault.enabled}}
+          args:
+            - 'sh'
+            - '-c'
+            - '{{- range $k := .Values.vault.secrets }}source /vault/secrets/{{$k}} && {{- end}}{{ .Values.vault.entrypoint }}'
+          {{- end}}
+          env:
+          {{- range $k,$v := fromYaml (.Values.configmap.env) }}
+            - name: {{$k}}
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "templates.fullname" $ }}
+                  key: {{$k}}
+          {{- end }}
+          {{- range $k,$v := fromYaml (.Values.secret.data) }}
+            - name: {{$k}}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "templates.fullname" $ }}
+                  key: {{$k}}
+          {{- end }}
+          {{- if .Values.container.ports}}
+          {{- with .Values.container.ports }}
+          ports:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
+          ports:
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+          {{- end }}
+          {{- if .Values.container.resources}}
+          {{- with .Values.container.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
+          resources:
+            limits:
+              cpu: 100m
+              memory: 250Mi
+            requests:
+              cpu: 20m
+              memory: 50Mi
+          {{- end }}
+          {{- if .Values.container.readinessProbe}}
+          {{- with .Values.container.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- else }}
+          readinessProbe:
+            limits:
+              cpu: 100m
+              memory: 250Mi
+            requests:
+              cpu: 20m
+              memory: 50Mi
+          {{- end }}
+          {{- with .Values.container.readinessProbe }}
+          readinessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.container.livenessProbe }}
+          livenessProbe:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.container.volumeMounts }}
+          volumeMounts:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+      {{- with .Values.volumes }}
+      volumes:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

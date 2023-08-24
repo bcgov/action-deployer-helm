@@ -1,0 +1,42 @@
+backend:
+  enabled: true
+  deployment: # can be either a statefulSet or a deployment not both
+    enabled: true
+  statefulSet: # can be either a statefulSet or a deployment not both
+    enabled: false
+  secret:
+    enabled: true
+    persistent: true
+    data:
+      username: admin
+      password: admin
+  configmap:
+    enabled: true
+  containers:
+    - name:
+      image:
+      tag:
+      ports:
+        - name:
+          containerPort:
+          protocol:
+      resources:
+        limits:
+          cpu: 500m
+          memory: 500Mi
+        requests:
+          cpu: 200m
+          memory: 250Mi
+    - name:
+      image:
+      tag:
+
+  initContainers:
+    - name:
+      image:
+      tag:
+    - name:
+      image:
+      tag:
+
+
