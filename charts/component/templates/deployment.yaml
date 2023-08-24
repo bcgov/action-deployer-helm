@@ -1,16 +1,18 @@
+{{- if .Values.deployment }}
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "templates.fullname" . }}
+  name: {{ include "component.fullname" . }}
   labels:
-    {{- include "templates.labels" . | nindent 4 }}
+    {{- include "component.labels" . | nindent 4 }}
 spec:
   {{- if not .Values.autoscaling.enabled }}
   replicas: {{ .Values.replicaCount }}
   {{- end }}
   selector:
     matchLabels:
-      {{- include "templates.selectorLabels" . | nindent 6 }}
+      {{- include "component.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       {{- with .Values.podAnnotations }}
@@ -18,13 +20,13 @@ spec:
         {{- toYaml . | nindent 8 }}
       {{- end }}
       labels:
-        {{- include "templates.selectorLabels" . | nindent 8 }}
+        {{- include "component.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "templates.serviceAccountName" . }}
+      serviceAccountName: {{ include "component.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       {{- if .Values.initContainers }}
@@ -32,9 +34,9 @@ spec:
         {{- toYaml .Values.initContainers | nindent 8 }}
       {{- end }}
       containers:
-        - image: {{ include "templates.fullname" . }}:{{ .Values.image.tag }}
+        - image: {{ include "component.fullname" . }}:{{ .Values.image.tag }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
-          name: {{ include "templates.fullname" . }}
+          name: {{ include "component.fullname" . }}
           {{- if .Values.vault.enabled}}
           args:
             - 'sh'
@@ -46,14 +48,14 @@ spec:
             - name: {{$k}}
               valueFrom:
                 configMapKeyRef:
-                  name: {{ include "templates.fullname" $ }}
+                  name: {{ include "component.fullname" $ }}
                   key: {{$k}}
           {{- end }}
           {{- range $k,$v := fromYaml (.Values.secret.data) }}
             - name: {{$k}}
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "templates.fullname" $ }}
+                  name: {{ include "component.fullname" $ }}
                   key: {{$k}}
           {{- end }}
           {{- if .Values.container.ports}}
@@ -88,16 +90,10 @@ spec:
           {{- end }}
           {{- else }}
           readinessProbe:
-            limits:
-              cpu: 100m
-              memory: 250Mi
-            requests:
-              cpu: 20m
-              memory: 50Mi
-          {{- end }}
-          {{- with .Values.container.readinessProbe }}
-          readinessProbe:
-            {{- toYaml . | nindent 12 }}
+            httpGet:
+              path: /
+              port: 3000
+              scheme: HTTP
           {{- end }}
           {{- with .Values.container.livenessProbe }}
           livenessProbe:
@@ -123,3 +119,4 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+{{- end }}

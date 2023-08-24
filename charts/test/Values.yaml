@@ -40,3 +40,5 @@ backend:
       tag:
 
 
+frontend:
+  enabled: true

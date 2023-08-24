@@ -1,5 +1,6 @@
+---
 apiVersion: v2
-name: Sample Test application to Test Helm Chart
+name: test
 description: A Helm chart template for supporting different kind of application deployment.
 
 # A chart can be either an 'application' or a 'library' chart.
@@ -24,9 +25,12 @@ version: 1.0.0
 appVersion: "1.0.0"
 
 dependencies:
-  - name: templates
-    condition: backend.enabled
-    repository: file://../templates
-    version: 0.1.0
+  - name: component
+    repository: "file://../component"
+    version: 1.0.0
     alias: backend
 
+  - name: component
+    repository: "file://../component"
+    version: 1.0.0
+    alias: frontend

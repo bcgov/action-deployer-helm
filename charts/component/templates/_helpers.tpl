@@ -1,7 +1,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "templates.name" -}}
+{{- define "component.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -10,7 +10,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "templates.fullname" -}}
+{{- define "component.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -26,42 +26,42 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "templates.chart" -}}
+{{- define "component.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "templates.labels" -}}
-helm.sh/chart: {{ include "templates.chart" . }}
-{{ include "templates.selectorLabels" . }}
+{{- define "component.labels" -}}
+helm.sh/chart: {{ include "component.chart" . }}
+{{ include "component.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
-app.kubernetes.io/managed-by: {{ .Release.templates.}}
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end }}
 
 {{/*
 Selector labels
 */}}
-{{- define "templates.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "templates.name" . }}
+{{- define "component.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "component.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Pod Annotations
 */}}
-{{- define "templates.podAnnotations" -}}
+{{- define "component.podAnnotations" -}}
 {{- end }}
 
 {{/*
 Create the hostname of the Route to use
 */}}
-{{- define "templates.hostname" -}}
+{{- define "component.hostname" -}}
 {{- if .Values.route.enabled }}
-{{- default (printf "%s.%s" (include "templates.fullname" .) (.Values.domain)) .Values.route.hostname }}
+{{- default (printf "%s.%s" (include "component.fullname" .) (.Values.domain)) .Values.route.hostname }}
 {{- else }}
 {{- default "default" .Values.route.hostname }}
 {{- end }}
@@ -70,36 +70,36 @@ Create the hostname of the Route to use
 {{/*
 Get Environment Variables
 */}}
-{{- define "templates.env" -}}
+{{- define "component.env" -}}
 {{- default ("") .Values.configmap.env }}
 {{- end }}
 
 {{/*
 Create default ConfigMap
 */}}
-{{- define "templates.configmap" -}}
-{{ printf "%s%s" (.Values.configmap.script) (include "templates.env" .) }}
+{{- define "component.configmap" -}}
+{{ printf "%s%s" (.Values.configmap.script) (include "component.env" .) }}
 {{- end}}
 
 
 {{/*
 Create default Secret
 */}}
-{{- define "templates.secret" -}}
+{{- define "component.secret" -}}
 {{- default ("") .Values.secret.stringdata }}
 {{- end }}
 
 {{/*
 Vault Sideloader Annotations
 */}}
-{{- define "templates.vaultAnnotations" -}}
+{{- define "component.vaultAnnotations" -}}
 {{- if .Values.vault.enabled }}
 # 1. Vault injector configuration goes here, inside the template.
 vault.hashicorp.com/agent-inject: 'true'
 vault.hashicorp.com/agent-inject-token: 'true'
 vault.hashicorp.com/agent-pre-populate-only: 'true' # this makes sure the secret vault will only change during pod restart
 vault.hashicorp.com/auth-path: auth/k8s-silver  # This was tricky.  Be sure to use k8s-silver, k8s-gold, or k8s-golddr
-vault.hashicorp.com/namespace: platform-templates.
+vault.hashicorp.com/namespace: platform-component.
 vault.hashicorp.com/role: {{.Values.vault.zone}}  # licenseplate-nonprod or licenseplate-prod are your options
 
 

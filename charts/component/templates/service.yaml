@@ -1,11 +1,11 @@
-{{- if .Values.sevice.enabled }}
+{{- if .Values.sevice }}
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "templates.fullname" . }}
+  name: {{ include "component.fullname" . }}
   labels:
-    {{- include "templates.labels" . | nindent 4 }}
+    {{- include "component.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -14,5 +14,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "templates.selectorLabels" . | nindent 4 }}
+    {{- include "component.selectorLabels" . | nindent 4 }}
 {{- end }}

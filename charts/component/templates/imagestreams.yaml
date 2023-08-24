@@ -1,0 +1,21 @@
+{{- if .Values.imagestream -}}
+---
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: {{ include "component.fullname" . }}
+  labels:
+    {{- include "component.labels" . | nindent 4 }}
+spec:
+  lookupPolicy:
+    local: false
+  tags:
+{{- range .Values.imagestream.streams }}
+    - name: {{ .name }}:{{ .tag }}
+      from:
+        kind: DockerImage
+        name: {{ .repository }}:{{ .tag }}
+      referencePolicy:
+        type: Local
+{{- end }}
+{{- end }}

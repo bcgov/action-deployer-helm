@@ -1,5 +1,5 @@
 apiVersion: v2
-name: templates
+name: component
 description: A Helm chart template for supporting different kind of application deployment.
 
 # A chart can be either an 'application' or a 'library' chart.
