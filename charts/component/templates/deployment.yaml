@@ -71,33 +71,26 @@ spec:
         - name: {{ .name }}
           image: {{ .name }}:{{ .tag }}
           imagePullPolicy: Always
-          {{- if and .vault .vault.enabled}} # if vault is enabled for specific container
-          args:
-            - 'sh'
-            - '-c'
-            - '{{- range $k := .vault.secrets }}source /vault/secrets/{{$k}} && {{- end}}{{ .vault.entrypoint }}'
-          {{- end}}
+          {{- if .envFrom }}
+          envFrom:
+          {{- if .envFrom.secretRef }}
+            - secretRef:
+                name: {{ .envFrom.secretRef }}
+          {{- end }}
+          {{- if .envFrom.configMapRef }}
+            - configMapRef:
+                name: {{ .envFrom.configMapRef }}
+          {{- end }}
+          {{- end }}
+          {{- if .env }}
+          {{- with .env }}
           env:
-          {{- if $configmap }}
-          {{- range $configmap.data }}
-            - name: {{ .envName }}
-              valueFrom:
-                configMapKeyRef:
-                  name: {{ include "component.fullname" $ }}
-                  key: {{ .name }}
+            {{- toYaml . | nindent 12 }}
           {{- end }}
           {{- end }}
-          {{- if and $secrets }}
-          {{- range $secrets.data }}
-            - name: {{ .envName }}
-              valueFrom:
-                secretKeyRef:
-                  name: {{ include "component.fullname" $ }}
-                  key: {{ .name }}
-          {{- end }}
-          {{- end }}
-          {{- if .Values.container.ports}}
-          {{- with .Values.container.ports }}
+
+          {{- if .ports}}
+          {{- with .ports }}
           ports:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -107,8 +100,8 @@ spec:
               containerPort: 3000
               protocol: TCP
           {{- end }}
-          {{- if .Values.container.resources}}
-          {{- with .Values.container.resources }}
+          {{- if .resources}}
+          {{- with .resources }}
           resources:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -121,8 +114,8 @@ spec:
               cpu: 20m
               memory: 50Mi
           {{- end }}
-          {{- if .Values.container.readinessProbe}}
-          {{- with .Values.container.readinessProbe }}
+          {{- if .readinessProbe}}
+          {{- with .readinessProbe }}
           readinessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
@@ -133,16 +126,20 @@ spec:
               port: 3000
               scheme: HTTP
           {{- end }}
-          {{- with .Values.container.livenessProbe }}
+          {{- if .livenessProbe}}
+          {{- with .livenessProbe }}
           livenessProbe:
             {{- toYaml . | nindent 12 }}
           {{- end }}
-          {{- with .Values.container.volumeMounts }}
+          {{- end }}
+          {{- if .volumeMounts }}
+          {{- with .volumeMounts }}
           volumeMounts:
             {{- toYaml . | nindent 12 }}
           {{- end }}
+          {{- end }}
       {{- end }}
-      {{- with .Values.volumes }}
+      {{- with .volumes }}
       volumes:
         {{- toYaml . | nindent 8 }}
       {{- end }}

@@ -47,6 +47,10 @@ backend:
         requests:
           cpu: 200m
           memory: 250Mi
+      envFrom:
+        configMapRef: backend-configmap
+        secretRef: backend-secret
+
     - name: backend-sidecar
       repository: ghcr.io/bcgov/quickstart-openshift # example
       image: backend-sidecar
@@ -72,7 +76,86 @@ backend:
       repository: ghcr.io/bcgov/quickstart-openshift # example
       image: backend-init2
       tag: latest
-
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80 # this percentage from request cpu
 
 frontend:
-  enabled: false
+  enabled: true
+  deployment: # can be either a statefulSet or a deployment not both
+    enabled: true
+  statefulSet: # can be either a statefulSet or a deployment not both
+    enabled: false
+  secret:
+    enabled: true
+    persistent: true
+    data:
+      - name: username
+        envName: USERNAME # which env var it is mapped to
+        value: admin
+      - name: password
+        envName: PASSWORD # which env var it is mapped to
+        value: admin
+  configmap:
+    enabled: true
+    data:
+      - name: config
+        envName: CONFIG # which env var it is mapped to
+        value: |
+          {
+            "key": "value"
+          }
+      - name: config2
+        envName: CONFIG2 # which env var it is mapped to
+        value: |
+          {
+            "key": "value"
+          }
+  containers:
+    - name: frontend
+      repository: ghcr.io/bcgov/quickstart-openshift # example
+      image: frontend
+      tag: latest
+      ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+      resources: # this is optional
+        limits:
+          cpu: 500m
+          memory: 500Mi
+        requests:
+          cpu: 200m
+          memory: 250Mi
+    - name: frontend-sidecar
+      repository: ghcr.io/bcgov/quickstart-openshift # example
+      image: frontend-sidecar
+      tag: latest
+      ports:
+        - name: http
+          containerPort: 3000
+          protocol: TCP
+      resources:
+        limits:
+          cpu: 500m
+          memory: 500Mi
+        requests:
+          cpu: 200m
+          memory: 250Mi
+
+  initContainers:
+    - name: frontend-init1
+      repository: ghcr.io/bcgov/quickstart-openshift # example
+      image: frontend-init1
+      tag: latest
+    - name: frontend-init2
+      repository: ghcr.io/bcgov/quickstart-openshift # example
+      image: frontend-init2
+      tag: latest
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 80 # this percentage from request cpu

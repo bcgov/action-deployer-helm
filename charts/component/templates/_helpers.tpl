@@ -82,12 +82,6 @@ Create default ConfigMap
 {{- end}}
 
 
-{{/*
-Create default Secret
-*/}}
-{{- define "component.secret" -}}
-{{- default ("") .Values.secret.stringdata }}
-{{- end }}
 
 {{/*
 Vault Sideloader Annotations
@@ -100,14 +94,14 @@ vault.hashicorp.com/agent-inject-token: 'true'
 vault.hashicorp.com/agent-pre-populate-only: 'true' # this makes sure the secret vault will only change during pod restart
 vault.hashicorp.com/auth-path: auth/k8s-silver  # This was tricky.  Be sure to use k8s-silver, k8s-gold, or k8s-golddr
 vault.hashicorp.com/namespace: platform-component.
-vault.hashicorp.com/role: {{.Values.vault.zone}}  # licenseplate-nonprod or licenseplate-prod are your options
+vault.hashicorp.com/role: {{.Values.vault.role}}  # licenseplate-nonprod or licenseplate-prod are your options
 
 
 # Configure how to retrieve and populate the secrets from Vault:
 # - The name of the secret is any unique string after vault.hashicorp.com/agent-inject-secret-<name>
 # - The value is the path in Vault where the secret is located.
 {{- range $k := .Values.vault.secrets }}
-vault.hashicorp.com/agent-inject-secret-{{$k}}:    {{$.Values.vault.zone}}/{{$k}}
+vault.hashicorp.com/agent-inject-secret-{{$k}}:    {{$.Values.vault.role}}/{{$k}}
 vault.hashicorp.com/agent-inject-template-{{$k}}: |
   {{ printf "%s" "{{" }}- with secret "{{$.Values.vault.zone}}/{{$k}}"{{ printf "%s" "}}" }}
   {{ printf "%s" "{{" }}- range $k,$v := .Data.data{{ printf "%s" "}}"  }}
