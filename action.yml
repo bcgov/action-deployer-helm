@@ -49,7 +49,7 @@ runs:
   using: composite
   steps:
     # Clone, for charts
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         repository: ${{ inputs.repository }}
         ref: ${{ inputs.branch }}
@@ -105,4 +105,4 @@ runs:
     # Action repo needs to be present for cleanup/tests
     - name: Checkout to make sure action.yml is present (tests)
       if: ${{ github.repository }} != ${{ inputs.repository }}
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
