@@ -8,7 +8,7 @@ metadata:
     {{- include "component.labels" . | nindent 4 }}
 data:
     {{- range  .Values.configmap.data }}
-    {{ .name }}: {{ .value }}
+    {{ .name | quote }}: {{ .value | quote }}
     {{- end }}
 
 {{- end }}

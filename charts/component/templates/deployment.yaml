@@ -46,9 +46,9 @@ spec:
           image: {{ .name }}:{{ .tag }}
           imagePullPolicy: Always
           env:
-          {{- if $configmap }}
+          {{- if and $configmap $configmap.enabled}}
           {{- range $configmap.data }}
-            - name: {{ .envName }}
+            - name: {{ .name }}
               valueFrom:
                 configMapKeyRef:
                   name: {{ include "component.fullname" $ }}
@@ -69,7 +69,13 @@ spec:
       containers:
       {{- range .Values.containers }}
         - name: {{ .name }}
-          image: {{ .name }}:{{ .tag }}
+          {{- if and $.Values.vault $.Values.vault.enabled }}
+          args:
+            - 'sh' 
+            - '-c'
+            - '{{- range $k := $.Values.vault.secrets }}source /vault/secrets/{{$k}} && {{- end}}{{ $.Values.vault.entrypoint }}'
+          {{- end}}
+          image: {{.repository}}/{{ .name }}:{{ .tag }}
           imagePullPolicy: Always
           {{- if .envFrom }}
           envFrom:
