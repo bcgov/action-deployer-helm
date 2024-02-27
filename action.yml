@@ -1,11 +1,15 @@
 name: Helm Deployer
-description: Helm wrapper with route verification or penetration testing
+description: Helm wrapper intended for use with github.com/bcgov-nr/quickstart-openshift
 branding:
   icon: package
   color: blue
 
 inputs:
   ### Required
+  release:
+    description: Deployment release; usually PR number, test or prod
+    required: true
+    type: string
   namespace:
     description: OpenShift or Kubernetes namespace (e.g. abc123-dev)
     required: true
@@ -17,33 +21,45 @@ inputs:
     required: true
 
   ### Typical / recommended
-  directory:
-    descrption: Directory with Helm charts
-    default: "charts"
-  parameters:
-    description: Template parameters/variables to pass (e.g. --set ZONE=...)
-    default: ""
+  environment:
+    description: Environment name; omit for PRs
+    required: false
+    type: string
+  params:
+    description: 'Extra parameters to pass to helm upgrade'
+    default: ''
+    required: false
+    type: string
   triggers:
-    description: Omit to always release/deploy, otherwise trigger by path; e.g. ('./backend/' './frontend/)
-
-  ### Optional / not usually required
-  command:
-    description: Optionally, do something other than upgrade
-    default: "upgrade --install --atomic --debug"
-  release:
-    description: Helm release
-    default: "${{ github.event.repository.name }}-${{ github.event.number }}"
+    description: Paths used to trigger a build; e.g. ('./backend/' './frontend/)
+    required: false
+    type: string
 
   ### Usually a bad idea / not recommended
-  diff_branch:
-    description: Branch to diff against
-    default: "${{ github.event.repository.default_branch }}"
-  repository:
-    description: Optionally, specify a different repo to clone
-    default: "${{ github.repository }}"
   branch:
     description: Optionally, specify a different branch to clone
     default: ""
+  diff_branch:
+    description: Branch to diff against, picks up default if omitted
+    default: "${{ github.event.repository.default_branch }}"
+  directory:
+    description: 'Chart directory'
+    default: 'charts'
+    required: false
+    type: string
+  repository:
+    description: Optionally, specify a different repo to clone
+    default: "${{ github.repository }}"
+  values:
+    description: 'Values file'
+    default: 'values.yaml'
+    required: false
+    type: string
+
+outputs:
+  triggered:
+    description: 'Has a deployment has been triggered?'
+    value: ${{ jobs.deploys.outputs.triggered }}
 
 runs:
   using: composite
