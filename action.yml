@@ -10,19 +10,15 @@ inputs:
     description: Deployment release; usually PR number, test or prod
     required: true
     type: string
-  namespace:
-    description: OpenShift or Kubernetes namespace (e.g. abc123-dev)
-    required: true
-  server:
-    description: OpenShift or Kubernetes server (e.g. https://api.silver.devops.gov.bc.ca:6443)
-    required: true
-  token:
-    description: OpenShift or Kubernetes access token
-    required: true
 
   ### Typical / recommended
   environment:
     description: Environment name; omit for PRs
+    required: false
+    type: string
+  oc_server:
+    default: https://api.silver.devops.gov.bc.ca:6443
+    description: 'OpenShift server'
     required: false
     type: string
   params:
@@ -40,25 +36,29 @@ inputs:
     type: string
 
   ### Usually a bad idea / not recommended
-  branch:
-    description: Optionally, specify a different branch to clone
-    default: ""
-  diff_branch:
-    description: Branch to diff against, picks up default if omitted
-    default: "${{ github.event.repository.default_branch }}"
   directory:
     description: 'Chart directory'
     default: 'charts'
     required: false
     type: string
-  repository:
-    description: Optionally, specify a different repo to clone
-    default: "${{ github.repository }}"
+  timeout-minutes:
+    description: 'Timeout minutes'
+    default: 10
+    required: false
+    type: number
   values:
     description: 'Values file'
     default: 'values.yaml'
     required: false
     type: string
+
+secrets:
+  oc_namespace:
+    description: 'OpenShift namespace'
+    required: false
+  oc_token:
+    description: 'OpenShift token'
+    required: false
 
 outputs:
   triggered:
@@ -83,9 +83,6 @@ runs:
 
     # Otherwise, keep going
     - uses: actions/checkout@v4
-      with:
-        repository: ${{ inputs.repository }}
-        ref: ${{ inputs.branch }}
 
     # Get the associated PR number, if one was used or merged
     - name: Get PR Number
@@ -103,11 +100,13 @@ runs:
         fi
 
     - name: Deploy
+      env:
+        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
       working-directory: ${{ inputs.directory }}
       shell: bash
       run: |
           oc login --token=${{ secrets.oc_token }} --server=${{ vars.oc_server }}
-          oc project ${{ vars.OC_NAMESPACE }} # Safeguard!
+          oc project ${{ secrets.oc_namespace }} # Safeguard!
 
           # Interrupt any previous jobs (status = pending-upgrade)
           PREVIOUS=$(helm status ${{ env.repo_release }} -o json | jq .info.status || true)
@@ -118,7 +117,7 @@ runs:
           fi
 
           # Clean previous deployments for PR pipeline, if any 
-          if [[ '${{inputs.environment}}' == '' ]]; then
+          if [ -z ${{ inputs.environment }} ]; then
             helm uninstall ${{ env.repo_release }} || true
             # Remove Bitnami Postgres PVCs
             oc delete pvc data-${{ env.repo_release }}-bitnami-pg-0 || \
@@ -144,7 +143,3 @@ runs:
           
           # Remove old build runs, build pods and deployment pods
           oc delete po --field-selector=status.phase==Succeeded || true
-    # Action repo needs to be present for cleanup/tests
-    - name: Checkout to make sure action.yml is present (tests)
-      if: ${{ github.repository }} != ${{ inputs.repository }}
-      uses: actions/checkout@v4
