@@ -1,108 +1,145 @@
 name: Helm Deployer
-description: Helm wrapper with route verification or penetration testing
+description: Helm wrapper intended for use with github.com/bcgov-nr/quickstart-openshift
 branding:
   icon: package
   color: blue
 
 inputs:
   ### Required
-  namespace:
-    description: OpenShift or Kubernetes namespace (e.g. abc123-dev)
+  release:
+    description: Deployment release; usually PR number, test or prod
     required: true
-  server:
-    description: OpenShift or Kubernetes server (e.g. https://api.silver.devops.gov.bc.ca:6443)
-    required: true
-  token:
-    description: OpenShift or Kubernetes access token
-    required: true
+    type: string
 
   ### Typical / recommended
-  directory:
-    descrption: Directory with Helm charts
-    default: "charts"
-  parameters:
-    description: Template parameters/variables to pass (e.g. --set ZONE=...)
-    default: ""
+  environment:
+    description: Environment name; omit for PRs
+    required: false
+    type: string
+  oc_server:
+    default: https://api.silver.devops.gov.bc.ca:6443
+    description: 'OpenShift server'
+    required: false
+    type: string
+  params:
+    description: 'Extra parameters to pass to helm upgrade'
+    default: ''
+    required: false
+    type: string
+  tag:
+    description: Specify a tag to deploy; defaults to PR number
+    required: false
+    type: string
   triggers:
-    description: Omit to always release/deploy, otherwise trigger by path; e.g. ('./backend/' './frontend/)
-
-  ### Optional / not usually required
-  command:
-    description: Optionally, do something other than upgrade
-    default: "upgrade --install --atomic --debug"
-  release:
-    description: Helm release
-    default: "${{ github.event.repository.name }}-${{ github.event.number }}"
+    description: Paths used to trigger a build; e.g. ('./backend/' './frontend/)
+    required: false
+    type: string
 
   ### Usually a bad idea / not recommended
-  diff_branch:
-    description: Branch to diff against
-    default: "${{ github.event.repository.default_branch }}"
-  repository:
-    description: Optionally, specify a different repo to clone
-    default: "${{ github.repository }}"
-  branch:
-    description: Optionally, specify a different branch to clone
-    default: ""
+  directory:
+    description: 'Chart directory'
+    default: 'charts'
+    required: false
+    type: string
+  timeout-minutes:
+    description: 'Timeout minutes'
+    default: 10
+    required: false
+    type: number
+  values:
+    description: 'Values file'
+    default: 'values.yaml'
+    required: false
+    type: string
+
+secrets:
+  oc_namespace:
+    description: 'OpenShift namespace'
+    required: false
+  oc_token:
+    description: 'OpenShift token'
+    required: false
+
+outputs:
+  triggered:
+    description: 'Has a deployment has been triggered?'
+    value: ${{ steps.triggers.outputs.triggered }}
 
 runs:
   using: composite
   steps:
-    # Clone, for charts
-    - uses: actions/checkout@v3
+    # Triggers will fire if omitted or matched against a diff
+    - uses: bcgov-nr/action-diff-triggers@v0.2.0
+      id: triggers
       with:
-        repository: ${{ inputs.repository }}
-        ref: ${{ inputs.branch }}
+        triggers: ${{ inputs.triggers }}
 
-    # Process variables and inputs
-    - id: vars
+    # Exit if no deployment required/triggered
+    - if: steps.triggers.outputs.triggered == 'false'
       shell: bash
       run: |
-        # Expand for inputs and variables
+        echo "No deployment required/triggered!"
+        exit 0
 
-        # Bug mitigation - OpenShift/Kubernetes hates images with capitals in org/repo names
-        REPO=${{ inputs.repository }}
-        if [[ $REPO != ${REPO,,} ]]; then
-          echo -e "An OpenShift bug prevents capital letters in repo names.\n"
-          echo -e "Please handle that using the `repository` parameter.\n"
-          exit 1
-        fi
+    # Otherwise, keep going
+    - uses: actions/checkout@v4
 
-        # Triggers
-        TRIGGERS=${{ inputs.triggers }}
-        if [ -z "${TRIGGERS}" ]; then
-          echo "Triggers omitted, deployment required"
-          echo "triggered=true" >> $GITHUB_OUTPUT
-          exit 0
+    # Get the associated PR number, if one was used or merged
+    - name: Get PR Number
+      id: pr
+      uses: bcgov-nr/action-get-pr@v0.0.1
+
+    # Use any provided tags, otherwise use the PR number
+    - name: Set Tag
+      id: tag
+      run: |
+        if [ -z ${{ inputs.tag }} ]; then
+          echo "tag=${{ steps.pr.outputs.pr }}" >> $GITHUB_ENV
         else
-          echo "Processing triggers"
-          git fetch origin "${{ inputs.diff_branch }}"
-          while read -r check; do
-            for t in "${TRIGGERS[@]}"; do
-              if [[ "${check}" =~ "${t}" ]]; then
-                  echo -e "Triggered: ${t}\n --> ${check}"
-                  echo "triggered=true" >> $GITHUB_OUTPUT
-                  exit 0
-              fi
-            done
-          done < <(git diff origin/"${{ inputs.diff_branch }}" --name-only)
+          echo "tag=${{ inputs.tag }}" >> $GITHUB_ENV
         fi
-        echo "Triggers not matched, deployment skipped"
 
-    - if: steps.vars.outputs.triggered
+    - name: Deploy
+      env:
+        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
+      working-directory: ${{ inputs.directory }}
       shell: bash
       run: |
-        # Login to OpenShift/Kubernetes (NOTE: project command is a safeguard)
-        oc login --token=${{ inputs.token }} --server=${{ inputs.server }}
-        oc project ${{ inputs.namespace }}
+          oc login --token=${{ secrets.oc_token }} --server=${{ vars.oc_server }}
+          oc project ${{ secrets.oc_namespace }} # Safeguard!
 
-    - if: steps.vars.outputs.triggered
-      shell: bash
-      run: |
-        helm ${{ inputs.command }} ${{ inputs.release }} ${{ inputs.directory }} ${{ inputs.parameters }} \
-          | sed '/^kind: Secret/,/^---/{//!d}' | sed '/^kind: Secret/ s/$/ \n  <REDACTED>/'
+          # Interrupt any previous jobs (status = pending-upgrade)
+          PREVIOUS=$(helm status ${{ env.repo_release }} -o json | jq .info.status || true)
+          if [[ ${PREVIOUS} =~ pending ]]; then
+            echo "Rollback triggered"
+            helm rollback ${{ env.repo_release }} || \
+              helm uninstall ${{ env.repo_release }}
+          fi
 
-    # Action repo needs to be present for cleanup/tests
-    - name: Checkout to make sure action.yml is present (tests)
-      if: ${{ github.repository }} != ${{ inputs.repository }}
-      uses: actions/checkout@v3
+          # Clean previous deployments for PR pipeline, if any 
+          if [ -z ${{ inputs.environment }} ]; then
+            helm uninstall ${{ env.repo_release }} || true
+            # Remove Bitnami Postgres PVCs
+            oc delete pvc data-${{ env.repo_release }}-bitnami-pg-0 || \
+              echo "Not found: pvc data-${{ env.repo_release }}-bitnami-pg-0"
+          fi
+
+          # Prepare Helm chart
+          helm dependency update
+          helm package --app-version="$tag" --version=$tag .
+          
+          # Deploy Helm chart
+          helm upgrade \
+            --set-string global.repository=${{ github.repository }} \
+            --set-string global.tag=$tag \
+            ${{ inputs.params }} \
+            --install --wait --atomic  ${{ env.repo_release }} \
+            --timeout ${{ inputs.timeout-minutes }}m \
+            --values ${{ inputs.values }} \
+            ./${{ github.event.repository.name }}-$tag.tgz
+
+          # Print history
+          helm history ${{ env.repo_release }}
+          
+          # Remove old build runs, build pods and deployment pods
+          oc delete po --field-selector=status.phase==Succeeded || true
