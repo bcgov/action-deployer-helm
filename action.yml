@@ -133,7 +133,7 @@ runs:
 
           # Prepare Helm chart
           helm dependency update
-          helm package . --app-version="$tag" --version=$tag --repository=blorf
+          helm package . --app-version="$tag" --version=$tag --release=${{ github.event.repository.name}}
           
           # Deploy Helm chart
           helm upgrade \
