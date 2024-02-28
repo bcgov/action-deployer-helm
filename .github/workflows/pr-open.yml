@@ -27,7 +27,7 @@ jobs:
           tag_fallback: latest
 
   deploys:
-    name: deploys
+    name: Deploys
     needs: [builds]
     runs-on: ubuntu-latest
     steps:

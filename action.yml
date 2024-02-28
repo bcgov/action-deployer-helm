@@ -88,6 +88,8 @@ runs:
     - id: vars
       shell: bash
       run: |
+        # Vars: repo_release and tag
+
         # Set repo release name, which tacks the repo name onto the release, avoiding collisions
         echo "repo_release=${{ github.event.repository.name }}-${{ inputs.release }}" >> $GITHUB_OUTPUT
 
@@ -97,6 +99,11 @@ runs:
         else
           echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
         fi
+
+        # Summary
+        echo "repo_release=${{ github.event.repository.name }}-${{ inputs.release }}"
+        echo "tag (if pr num)=${{ steps.pr.outputs.pr }}"
+        echo "tag (if inputs)=${{ inputs.tag }}"
 
     ### Deploy
 
