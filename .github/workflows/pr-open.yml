@@ -1,4 +1,4 @@
-name: Pull Request
+name: PR
 
 on:
   pull_request:
@@ -7,46 +7,17 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-env:
-  repo_builds: bcgov/quickstart-openshift@
-
 jobs:
-  init:
-    name: Init
+  deploys:
+    name: deploys
     runs-on: ubuntu-latest
-    permissions:
-      packages: read
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Deploys
         uses: ./
         with:
-          directory: charts/init
-          namespace: ${{ vars.OC_NAMESPACE }}
-          server: ${{ vars.OC_SERVER }}
-          token: ${{ secrets.OC_TOKEN }}
-          parameters:
-            --set zone=${{ github.event.number }} --set repo=quickstart-openshift
-          repository: bcgov/quickstart-openshift
-          branch: feat/subcharts
-          release: ${{ github.event.repository.name }}-${{ github.event.number }}-init
-
-  database:
-    name: Database
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-    steps:
-      - uses: actions/checkout@v3
-      - name: Deploys
-        uses: ./
-        with:
-          directory: charts/database
-          namespace: ${{ vars.OC_NAMESPACE }}
-          server: ${{ vars.OC_SERVER }}
-          token: ${{ secrets.OC_TOKEN }}
-          parameters:
-            --set zone=${{ github.event.number }} --set repo=quickstart-openshift --set org=bcgov
-          repository: bcgov/quickstart-openshift
-          branch: feat/subcharts
-          release: ${{ github.event.repository.name }}-${{ github.event.number }}-database
+          oc_namespace: ${{ secrets.OC_NAMESPACE }}
+          oc_token: ${{ secrets.OC_TOKEN }}
+          release: ${{ github.event.number }}
+          params: --set-string global.repository=bcgov/quickstart-openshift
+          tag: 1835
