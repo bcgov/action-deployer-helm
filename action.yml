@@ -91,9 +91,9 @@ runs:
       shell: bash
       run: |
         if [ -z ${{ inputs.tag }} ]; then
-          echo "tag=${{ steps.pr.outputs.pr }}" >> $GITHUB_ENV
+          echo "tag=${{ steps.pr.outputs.pr }}" >> $GITHUB_OUTPUT
         else
-          echo "tag=${{ inputs.tag }}" >> $GITHUB_ENV
+          echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
         fi
 
     ### Deploy
@@ -140,17 +140,17 @@ runs:
       shell: bash
       run: |
         # Prepare Helm chart
-        helm package -u . --app-version="$tag" --version=$tag
+        helm package -u . --app-version="${{ steps.tag.outputs.tag }}" --version=${{ steps.tag.outputs.tag }}
 
         # Deploy Helm chart
         helm upgrade \
           --set-string global.repository=${{ github.repository }} \
-          --set-string global.tag=$tag \
+          --set-string global.tag=${{ steps.tag.outputs.tag }} \
           ${{ inputs.params }} \
           --install --wait --atomic  ${{ env.repo_release }} \
           --timeout ${{ inputs.timeout-minutes }}m \
           --values ${{ inputs.values }} \
-          ./${{ github.event.repository.name }}-$tag.tgz
+          ./${{ github.event.repository.name }}-${{ steps.tag.outputs.tag }}.tgz
 
         # Print history
         helm history ${{ env.repo_release }}
