@@ -36,6 +36,9 @@ inputs:
     type: string
 
   ### Usually a bad idea / not recommended
+  delete_completed:
+    description: Delete completed pods
+    default: true
   directory:
     description: 'Chart directory'
     default: 'charts'
@@ -141,5 +144,15 @@ runs:
           # Print history
           helm history ${{ env.repo_release }}
           
-          # Remove old build runs, build pods and deployment pods
-          oc delete po --field-selector=status.phase==Succeeded || true
+
+    - if: inputs.delete_completed == 'true'
+      shell: bash
+      run: |
+        # Expand for succeeded pod cleanup (optional)
+
+        # Pod Cleanup
+        oc login --token=${{ inputs.oc_token }} --server=${{ inputs.oc_server }}
+        oc project ${{ inputs.oc_namespace }} #Safeguard!
+
+        # Cleanup completed pods
+        oc delete po --field-selector=status.phase==Succeeded || true
