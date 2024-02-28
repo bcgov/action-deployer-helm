@@ -7,10 +7,10 @@ branding:
 inputs:
   ### Required
   oc_namespace:
-    description: 'OpenShift namespace'
+    description: OpenShift namespace
     required: true
   oc_token:
-    description: 'OpenShift token'
+    description: OpenShift token
     required: true
   release:
     description: Deployment release; usually repo-name-[PR|test|prod]
@@ -18,13 +18,17 @@ inputs:
     type: string
 
   ### Typical / recommended
-  directory:
-    description: 'Chart directory'
-    default:  'charts/${{ github.event.repository.name }}'
+  cleanup:
+    description: Cleanup, too aggressive for higher level environments
+    default: false
     required: false
-    type: string
-  environment:
-    description: Environment name; omit for PRs
+  development:
+    description: Development environment?  Adds pvc cleanup; [true|false]
+    default: false
+    required: false
+  directory:
+    description: Chart directory
+    default:  'charts/${{ github.event.repository.name }}'
     required: false
     type: string
   oc_server:
@@ -42,14 +46,11 @@ inputs:
     required: false
     type: string
   triggers:
-    description: Paths used to trigger a build; e.g. ('./backend/' './frontend/)
+    description: Paths used to trigger a deployment; e.g. ('./backend/' './frontend/)
     required: false
     type: string
 
   ### Usually a bad idea / not recommended
-  delete_completed:
-    description: Delete completed pods
-    default: true
   timeout-minutes:
     description: 'Timeout minutes'
     default: 10
@@ -71,7 +72,7 @@ runs:
   steps:
     ### Triggers, tags and early exits
 
-    # Check triggers (omitted or matched), exiting early if not fired
+    # Check triggers (omitted or matched), exiting successfully if not fired/required
     - uses: bcgov-nr/action-diff-triggers@v0.2.0
       id: triggers
       with:
@@ -88,6 +89,8 @@ runs:
     - id: vars
       shell: bash
       run: |
+        # Vars: repo_release and tag
+
         # Set repo release name, which tacks the repo name onto the release, avoiding collisions
         echo "repo_release=${{ github.event.repository.name }}-${{ inputs.release }}" >> $GITHUB_OUTPUT
 
@@ -97,6 +100,11 @@ runs:
         else
           echo "tag=${{ inputs.tag }}" >> $GITHUB_OUTPUT
         fi
+
+        # Summary
+        echo "repo_release=${{ github.event.repository.name }}-${{ inputs.release }}"
+        echo "tag (if pr num)=${{ steps.pr.outputs.pr }}"
+        echo "tag (if inputs)=${{ inputs.tag }}"
 
     ### Deploy
 
@@ -118,14 +126,11 @@ runs:
             helm uninstall ${{ steps.vars.outputs.repo_release }}
         fi
 
-    # DEV cleanup, too risky for higher level environments
-    - if: inputs.environment != ''
+    # Development=true removes Bitnami pvc, which existing  up jobs, but causes downtime
+    - if: inputs.development == 'true'
       shell: bash
       run: |
-        # DEV-only cleanup
-
-        # Remove any Helm releases and Bitnami Postgres PVCs 
-        helm uninstall ${{ steps.vars.outputs.repo_release }} || true
+        # Delete Bitnami PVC before deployment
         oc delete pvc data-${{ steps.vars.outputs.repo_release }}-bitnami-pg-0 || true
 
     # Package Helm chart
@@ -159,8 +164,7 @@ runs:
     ### Cleanup
 
     # Completed pod cleanup
-    - if: inputs.delete_completed == 'true'
-      shell: bash
+    - shell: bash
       run: |
         # Expand for succeeded pod cleanup (optional)
         oc delete po --field-selector=status.phase==Succeeded || true
