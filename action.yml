@@ -7,10 +7,10 @@ branding:
 inputs:
   ### Required
   oc_namespace:
-    description: 'OpenShift namespace'
+    description: OpenShift namespace
     required: true
   oc_token:
-    description: 'OpenShift token'
+    description: OpenShift token
     required: true
   release:
     description: Deployment release; usually repo-name-[PR|test|prod]
@@ -18,8 +18,12 @@ inputs:
     type: string
 
   ### Typical / recommended
+  cleanup:
+    description: Cleanup, too aggressive for higher level environments
+    default: false
+    required: false
   directory:
-    description: 'Chart directory'
+    description: Chart directory
     default:  'charts/${{ github.event.repository.name }}'
     required: false
     type: string
@@ -47,9 +51,6 @@ inputs:
     type: string
 
   ### Usually a bad idea / not recommended
-  delete_completed:
-    description: Delete completed pods
-    default: true
   timeout-minutes:
     description: 'Timeout minutes'
     default: 10
@@ -109,7 +110,6 @@ runs:
 
     # OC Login
     - shell: bash
-      environment: ${{ inputs.environment }}
       run: |
         # OC Login
         oc login --token=${{ inputs.oc_token }} --server=${{ inputs.oc_server }}
@@ -127,10 +127,10 @@ runs:
         fi
 
     # DEV cleanup, too risky for higher level environments
-    - if: inputs.environment != ''
+    - if: inputs.cleanup == 'true'
       shell: bash
       run: |
-        # DEV-only cleanup
+        # Pre-deploy cleanup
 
         # Remove any Helm releases and Bitnami Postgres PVCs 
         helm uninstall ${{ steps.vars.outputs.repo_release }} || true
@@ -167,7 +167,7 @@ runs:
     ### Cleanup
 
     # Completed pod cleanup
-    - if: inputs.delete_completed == 'true'
+    - if: inputs.cleanup == 'true'
       shell: bash
       run: |
         # Expand for succeeded pod cleanup (optional)
