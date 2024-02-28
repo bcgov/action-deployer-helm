@@ -117,8 +117,8 @@ runs:
 
           # Get repository name (clip org/)
           REPO="${{ inputs.repository }}"
-          echo "REPO_NAME=${{ REPO##*/ }}"
-          echo "REPO_NAME=${{ REPO##*/ }}" >> $GITHUB_ENV
+          echo "REPO_NAME=${REPO##*/}"
+          echo "REPO_NAME=${REPO##*/}" >> $GITHUB_ENV
           exit 1
 
           # Interrupt any previous jobs (status = pending-upgrade)
