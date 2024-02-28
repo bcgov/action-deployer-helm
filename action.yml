@@ -112,7 +112,7 @@ runs:
       working-directory: ${{ inputs.directory }}
       shell: bash
       run: |
-          oc login --token=${{ inputs.oc_token }} --server=${{ vars.oc_server }}
+          oc login --token=${{ inputs.oc_token }} --server=${{ inputs.oc_server }}
           oc project ${{ inputs.oc_namespace }} # Safeguard!
 
           # Interrupt any previous jobs (status = pending-upgrade)
