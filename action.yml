@@ -159,3 +159,8 @@ runs:
 
         # Cleanup completed pods
         oc delete po --field-selector=status.phase==Succeeded || true
+
+    # Action repo needs to be present for cleanup/tests
+    - name: Checkout local repo to make sure action.yml is present
+      if: ${{ github.repository }} != ${{ inputs.repository }}
+      uses: actions/checkout@v4
