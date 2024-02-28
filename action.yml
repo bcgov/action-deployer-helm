@@ -116,8 +116,9 @@ runs:
           oc project ${{ inputs.oc_namespace }} # Safeguard!
 
           # Get repository name (clip org/)
-          echo "repo_name=${{ inputs.repository##*/ }}"
-          echo "repo_name=${{ inputs.repository##*/ }}" >> $GITHUB_ENV
+          REPO="${{ inputs.repository }}"
+          echo "REPO_NAME=${{ REPO##*/ }}"
+          echo "REPO_NAME=${{ REPO##*/ }}" >> $GITHUB_ENV
           exit 1
 
           # Interrupt any previous jobs (status = pending-upgrade)
@@ -167,5 +168,5 @@ runs:
 
     # Action repo needs to be present for cleanup/tests
     - name: Checkout local repo to make sure action.yml is present
-      if: ${{ github.repository }} != ${{ inputs.repository }}
+      # if: ${{ github.repository }} != ${{ inputs.repository }}
       uses: actions/checkout@v4
