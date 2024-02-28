@@ -6,6 +6,12 @@ branding:
 
 inputs:
   ### Required
+  oc_namespace:
+    description: 'OpenShift namespace'
+    required: true
+  oc_token:
+    description: 'OpenShift token'
+    required: true
   release:
     description: Deployment release; usually repo-name-[PR|test|prod]
     required: true
@@ -57,14 +63,6 @@ inputs:
     default: 'values.yaml'
     required: false
     type: string
-
-secrets:
-  oc_namespace:
-    description: 'OpenShift namespace'
-    required: false
-  oc_token:
-    description: 'OpenShift token'
-    required: false
 
 outputs:
   triggered:

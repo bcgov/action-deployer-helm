@@ -14,9 +14,8 @@ jobs:
     steps:
       - name: Deploys
         uses: ./
-        secrets:
+        with:
           oc_namespace: ${{ secrets.OC_NAMESPACE }}
           oc_token: ${{ secrets.OC_TOKEN }}
-        with:
           repository: bcgov/quickstart-openshift
           release: ${{ github.event.repository.name }}-${{ github.event.number }}
