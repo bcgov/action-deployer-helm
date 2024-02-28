@@ -88,7 +88,7 @@ runs:
     - id: vars
       shell: bash
       run: |
-        # Set repo release name
+        # Set repo release name, which tacks the repo name onto the release, avoiding collisions
         echo "repo_release=${{ github.event.repository.name }}-${{ inputs.release }}" >> $GITHUB_OUTPUT
 
         # Set tag to PR number if inputs.tag not provided
