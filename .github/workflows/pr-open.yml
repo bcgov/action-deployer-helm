@@ -20,4 +20,4 @@ jobs:
           oc_token: ${{ secrets.OC_TOKEN }}
           release: ${{ github.event.repository.name }}-${{ github.event.number }}
           params: --set-string global.repository=bcgov/quickstart-openshift
-          tag: latest
+          tag: 1835
