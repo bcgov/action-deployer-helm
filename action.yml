@@ -7,7 +7,7 @@ branding:
 inputs:
   ### Required
   release:
-    description: Deployment release; usually PR number, test or prod
+    description: Deployment release; usually repo-name-[PR|test|prod]
     required: true
     type: string
 
