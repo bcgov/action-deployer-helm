@@ -109,6 +109,7 @@ runs:
 
     # OC Login
     - shell: bash
+      environment: ${{ inputs.environment }}
       run: |
         # OC Login
         oc login --token=${{ inputs.oc_token }} --server=${{ inputs.oc_server }}
