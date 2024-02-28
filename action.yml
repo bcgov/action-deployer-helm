@@ -122,12 +122,12 @@ runs:
             helm uninstall ${{ steps.vars.outputs.repo_release }}
         fi
 
-    # # Development=true interrupts existing  up jobs, but causes downtime
-    # - if: inputs.development == 'true'
-    #   shell: bash
-    #   run: |
-    #     # Pre-deploy cleanup
-    #     oc delete pvc data-${{ steps.vars.outputs.repo_release }}-bitnami-pg-0 || true
+    # Development=true removes Bitnami pvc, which existing  up jobs, but causes downtime
+    - if: inputs.development == 'true'
+      shell: bash
+      run: |
+        # Pre-deploy cleanup
+        oc delete pvc data-${{ steps.vars.outputs.repo_release }}-bitnami-pg-0 || true
 
     # Package Helm chart
     - uses: actions/checkout@v4
