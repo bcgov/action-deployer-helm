@@ -128,14 +128,18 @@ runs:
         helm uninstall ${{ steps.vars.outputs.repo_release }} || true
         oc delete pvc data-${{ steps.vars.outputs.repo_release }}-bitnami-pg-0 || true
 
-    # Deploy
+    # Package Helm chart
     - uses: actions/checkout@v4
     - shell: bash
       working-directory: ${{ inputs.directory }}
       run: |
-        # Prepare Helm chart
+        # Package Helm chart
         helm package -u . --app-version="${{ steps.vars.outputs.tag }}" --version=${{ steps.vars.outputs.tag }}
 
+    # Deploy Helm chart
+    - shell: bash
+      working-directory: ${{ inputs.directory }}
+      run: |
         # Deploy Helm chart
         helm upgrade \
           --set-string global.repository=${{ github.repository }} \
@@ -146,7 +150,10 @@ runs:
           --values ${{ inputs.values }} \
           ./${{ github.event.repository.name }}-${{ steps.vars.outputs.tag }}.tgz
 
-        # Print history
+    # Helm release history
+    - shell: bash
+      run: |
+        # Helm release history
         helm history ${{ steps.vars.outputs.repo_release }}
 
     ### Cleanup
