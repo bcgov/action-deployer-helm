@@ -66,10 +66,9 @@ outputs:
     description: 'Has a deployment has been triggered?'
     value: ${{ steps.triggers.outputs.triggered }}
 
-env:
-  repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
-
 runs:
+  env:
+    repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
   using: composite
   steps:
     ### Triggers, tags and early exits
