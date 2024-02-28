@@ -1,5 +1,5 @@
 name: Helm Deployer
-description: Helm wrapper intended for use with github.com/bcgov-nr/quickstart-openshift
+description: Helm wrapper intended for use with github.com/bcgov/quickstart-openshift
 branding:
   icon: package
   color: blue
@@ -18,6 +18,11 @@ inputs:
     type: string
 
   ### Typical / recommended
+  directory:
+    description: 'Chart directory'
+    default: 'charts'
+    required: false
+    type: string
   environment:
     description: Environment name; omit for PRs
     required: false
@@ -45,14 +50,6 @@ inputs:
   delete_completed:
     description: Delete completed pods
     default: true
-  directory:
-    description: 'Chart directory'
-    default: 'charts/quickstart-openshift'
-    required: false
-    type: string
-  repository:
-    description: Optionally, specify a different repo to clone
-    default: ${{ github.repository }}
   timeout-minutes:
     description: 'Timeout minutes'
     default: 10
@@ -103,9 +100,6 @@ runs:
 
     # Checkout, handling override repo
     - uses: actions/checkout@v4
-      with:
-        repository: ${{ inputs.repository }}
-
     - name: Deploy
       env:
         repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
@@ -133,7 +127,7 @@ runs:
 
           # Prepare Helm chart
           helm dependency update
-          helm package . --app-version="$tag" --version=$tag --release=${{ github.event.repository.name}}
+          helm package . --app-version="$tag" --version=$tag
           
           # Deploy Helm chart
           helm upgrade \
@@ -159,8 +153,3 @@ runs:
 
         # Cleanup completed pods
         oc delete po --field-selector=status.phase==Succeeded || true
-
-    # Action repo needs to be present for cleanup/tests
-    - name: Checkout local repo to make sure action.yml is present
-      # if: ${{ github.repository }} != ${{ inputs.repository }}
-      uses: actions/checkout@v4
