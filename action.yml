@@ -116,8 +116,8 @@ runs:
           oc project ${{ inputs.oc_namespace }} # Safeguard!
 
           # Get repository name (clip org/)
-          echo "repo_name=${{ inputs.repository }}"
-          echo "repo_name=${{ inputs.repository }}" >> $GITHUB_ENV
+          echo "repo_name=${{ inputs.repository##*/ }}"
+          echo "repo_name=${{ inputs.repository##*/ }}" >> $GITHUB_ENV
           exit 1
 
           # Interrupt any previous jobs (status = pending-upgrade)
