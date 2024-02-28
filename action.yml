@@ -83,13 +83,12 @@ runs:
         exit 0
 
     # Use any provided tags, otherwise use the PR number
-    - name: Get PR Number
-      id: pr
+    - id: pr
       uses: bcgov-nr/action-get-pr@v0.0.1
-    - name: Set Tag
-      id: tag
+    - id: tag
       shell: bash
       run: |
+        # Set tag to PR number if inputs.tag not provided
         if [ -z ${{ inputs.tag }} ]; then
           echo "tag=${{ steps.pr.outputs.pr }}" >> $GITHUB_OUTPUT
         else
@@ -99,47 +98,38 @@ runs:
     ### Deploy
 
     # OC Login
-    - name: Login
-      shell: bash
+    - shell: bash
       run: |
+        # OC Login
         oc login --token=${{ inputs.oc_token }} --server=${{ inputs.oc_server }}
         oc project ${{ inputs.oc_namespace }} # Safeguard!
 
     # Stop pre-existing deployments
-    - name: Interrupt previous deployments
-      env:
-        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
-      shell: bash
+    - shell: bash
       run: |
         # Interrupt any previous deployments (status = pending-upgrade)
-        PREVIOUS=$(helm status ${{ env.repo_release }} -o json | jq .info.status || true)
+        REPO_RELEASE="${{ github.event.repository.name }}-${{ inputs.release }}"
+        PREVIOUS=$(helm status ${REPO_RELEASE} -o json | jq .info.status || true)
         if [[ ${PREVIOUS} =~ pending ]]; then
           echo "Rollback triggered"
-          helm rollback ${{ env.repo_release }} || \
-            helm uninstall ${{ env.repo_release }}
+          helm rollback ${REPO_RELEASE} || \
+            helm uninstall ${REPO_RELEASE}
         fi
 
     # DEV cleanup, too risky for higher level environments
-    - name: DEV cleanup
-      if: inputs.environment != ''
-      env:
-        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
+    - if: inputs.environment != ''
       shell: bash
       run: |
-        # Clean previous deployments for PR pipeline, if any 
-        helm uninstall ${{ env.repo_release }} || true
+        # DEV-only cleanup
 
-        # Remove Bitnami Postgres PVCs
-        oc delete pvc data-${{ env.repo_release }}-bitnami-pg-0 || \
-          echo "Not found: pvc data-${{ env.repo_release }}-bitnami-pg-0"
+        # Remove any Helm releases and Bitnami Postgres PVCs 
+        helm uninstall ${{ github.event.repository.name }}-${{ inputs.release }} || true
+        oc delete pvc data-${{ github.event.repository.name }}-${{ inputs.release }}-bitnami-pg-0 || true
 
     # Deploy
     - uses: actions/checkout@v4
-    - name: Deploy
+    - shell: bash
       working-directory: ${{ inputs.directory }}
-      env:
-        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
-      shell: bash
       run: |
         # Prepare Helm chart
         helm package -u . --app-version="${{ steps.tag.outputs.tag }}" --version=${{ steps.tag.outputs.tag }}
@@ -149,13 +139,15 @@ runs:
           --set-string global.repository=${{ github.repository }} \
           --set-string global.tag=${{ steps.tag.outputs.tag }} \
           ${{ inputs.params }} \
-          --install --wait --atomic ${{ env.repo_release }} \
+          --install --wait --atomic ${{ github.event.repository.name }}-${{ inputs.release }} \
           --timeout ${{ inputs.timeout-minutes }}m \
           --values ${{ inputs.values }} \
           ./${{ github.event.repository.name }}-${{ steps.tag.outputs.tag }}.tgz
 
         # Print history
-        helm history ${{ env.repo_release }}
+        helm history ${{ github.event.repository.name }}-${{ inputs.release }}
+
+    ### Cleanup
 
     # Completed pod cleanup
     - if: inputs.delete_completed == 'true'
