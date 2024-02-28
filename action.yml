@@ -93,6 +93,7 @@ runs:
     # Use any provided tags, otherwise use the PR number
     - name: Set Tag
       id: tag
+      shell: bash
       run: |
         if [ -z ${{ inputs.tag }} ]; then
           echo "tag=${{ steps.pr.outputs.pr }}" >> $GITHUB_ENV
