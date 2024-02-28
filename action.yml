@@ -137,6 +137,8 @@ runs:
     - uses: actions/checkout@v4
     - name: Deploy
       working-directory: ${{ inputs.directory }}
+      env:
+        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
       shell: bash
       run: |
         # Prepare Helm chart
@@ -147,7 +149,7 @@ runs:
           --set-string global.repository=${{ github.repository }} \
           --set-string global.tag=${{ steps.tag.outputs.tag }} \
           ${{ inputs.params }} \
-          --install --wait --atomic  ${{ env.repo_release }} \
+          --install --wait --atomic ${{ env.repo_release }} \
           --timeout ${{ inputs.timeout-minutes }}m \
           --values ${{ inputs.values }} \
           ./${{ github.event.repository.name }}-${{ steps.tag.outputs.tag }}.tgz
