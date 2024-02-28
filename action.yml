@@ -67,8 +67,6 @@ outputs:
     value: ${{ steps.triggers.outputs.triggered }}
 
 runs:
-  env:
-    repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
   using: composite
   steps:
     ### Triggers, tags and early exits
@@ -109,6 +107,8 @@ runs:
 
     # Stop pre-existing deployments
     - name: Interrupt previous deployments
+      env:
+        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
       shell: bash
       run: |
         # Interrupt any previous deployments (status = pending-upgrade)
@@ -122,6 +122,8 @@ runs:
     # DEV cleanup, too risky for higher level environments
     - name: DEV cleanup
       if: inputs.environment != ''
+      env:
+        repo_release: ${{ github.event.repository.name }}-${{ inputs.release }}
       shell: bash
       run: |
         # Clean previous deployments for PR pipeline, if any 
