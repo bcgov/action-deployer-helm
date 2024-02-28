@@ -140,17 +140,17 @@ runs:
       shell: bash
       run: |
         # Prepare Helm chart
-        helm package -u . --app-version="${tag}" --version=${tag}
+        helm package -u . --app-version="$tag" --version=$tag
 
         # Deploy Helm chart
         helm upgrade \
           --set-string global.repository=${{ github.repository }} \
-          --set-string global.tag=${tag} \
+          --set-string global.tag=$tag \
           ${{ inputs.params }} \
           --install --wait --atomic  ${{ env.repo_release }} \
           --timeout ${{ inputs.timeout-minutes }}m \
           --values ${{ inputs.values }} \
-          ./${{ github.event.repository.name }}-${tag}.tgz
+          ./${{ github.event.repository.name }}-$tag.tgz
 
         # Print history
         helm history ${{ env.repo_release }}
