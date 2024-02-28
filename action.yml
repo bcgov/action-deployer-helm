@@ -133,7 +133,7 @@ runs:
 
           # Prepare Helm chart
           helm dependency update
-          helm package --app-version="$tag" --version=$tag .
+          helm package . --app-version="$tag" --version=$tag --repository=blorf
           
           # Deploy Helm chart
           helm upgrade \
