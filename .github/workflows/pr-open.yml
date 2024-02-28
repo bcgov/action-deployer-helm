@@ -19,3 +19,4 @@ jobs:
           oc_namespace: ${{ secrets.OC_NAMESPACE }}
           oc_token: ${{ secrets.OC_TOKEN }}
           release: ${{ github.event.repository.name }}-${{ github.event.number }}
+          params: --set-string global.repository=bcgov/quickstart-openshift

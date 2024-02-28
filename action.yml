@@ -20,7 +20,7 @@ inputs:
   ### Typical / recommended
   directory:
     description: 'Chart directory'
-    default: 'charts'
+    default:  'charts/${{ github.event.repository.name }}'
     required: false
     type: string
   environment:
@@ -126,8 +126,7 @@ runs:
           fi
 
           # Prepare Helm chart
-          helm dependency update
-          helm package . --app-version="$tag" --version=$tag
+          helm package -u . --app-version="$tag" --version=$tag
           
           # Deploy Helm chart
           helm upgrade \
@@ -141,7 +140,7 @@ runs:
 
           # Print history
           helm history ${{ env.repo_release }}
-          
+
     - if: inputs.delete_completed == 'true'
       shell: bash
       run: |
