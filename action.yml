@@ -47,7 +47,7 @@ inputs:
     default: true
   directory:
     description: 'Chart directory'
-    default: 'charts'
+    default: 'charts/quickstart-openshift'
     required: false
     type: string
   repository:
