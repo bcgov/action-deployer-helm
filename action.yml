@@ -88,6 +88,9 @@ runs:
     - id: vars
       shell: bash
       run: |
+        # Set repo release name
+        echo "repo_release=${{ github.event.repository.name }}-${{ inputs.release }}" >> $GITHUB_OUTPUT
+
         # Set tag to PR number if inputs.tag not provided
         if [ -z ${{ inputs.tag }} ]; then
           echo "tag=${{ steps.pr.outputs.pr }}" >> $GITHUB_OUTPUT
@@ -108,12 +111,11 @@ runs:
     - shell: bash
       run: |
         # Interrupt any previous deployments (status = pending-upgrade)
-        REPO_RELEASE="${{ github.event.repository.name }}-${{ inputs.release }}"
-        PREVIOUS=$(helm status ${REPO_RELEASE} -o json | jq .info.status || true)
+        PREVIOUS=$(helm status ${{ steps.vars.outputs.repo_release }} -o json | jq .info.status || true)
         if [[ ${PREVIOUS} =~ pending ]]; then
           echo "Rollback triggered"
-          helm rollback ${REPO_RELEASE} || \
-            helm uninstall ${REPO_RELEASE}
+          helm rollback ${{ steps.vars.outputs.repo_release }} || \
+            helm uninstall ${{ steps.vars.outputs.repo_release }}
         fi
 
     # DEV cleanup, too risky for higher level environments
@@ -123,8 +125,8 @@ runs:
         # DEV-only cleanup
 
         # Remove any Helm releases and Bitnami Postgres PVCs 
-        helm uninstall ${{ github.event.repository.name }}-${{ inputs.release }} || true
-        oc delete pvc data-${{ github.event.repository.name }}-${{ inputs.release }}-bitnami-pg-0 || true
+        helm uninstall ${{ steps.vars.outputs.repo_release }} || true
+        oc delete pvc data-${{ steps.vars.outputs.repo_release }}-bitnami-pg-0 || true
 
     # Deploy
     - uses: actions/checkout@v4
@@ -139,13 +141,13 @@ runs:
           --set-string global.repository=${{ github.repository }} \
           --set-string global.tag=${{ steps.vars.outputs.tag }} \
           ${{ inputs.params }} \
-          --install --wait --atomic ${{ github.event.repository.name }}-${{ inputs.release }} \
+          --install --wait --atomic ${{ steps.vars.outputs.repo_release }} \
           --timeout ${{ inputs.timeout-minutes }}m \
           --values ${{ inputs.values }} \
           ./${{ github.event.repository.name }}-${{ steps.vars.outputs.tag }}.tgz
 
         # Print history
-        helm history ${{ github.event.repository.name }}-${{ inputs.release }}
+        helm history ${{ steps.vars.outputs.repo_release }}
 
     ### Cleanup
 
