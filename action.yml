@@ -139,7 +139,7 @@ runs:
       working-directory: ${{ inputs.directory }}
       run: |
         # Package Helm chart
-        helm package -u . --app-version="${{ steps.vars.outputs.tag }}" --version=${{ steps.vars.outputs.tag }}
+        helm package -u . --app-version="${{ steps.vars.outputs.tag }}" --version=${{ steps.pr.outputs.pr }}
 
     # Deploy Helm chart
     - shell: bash

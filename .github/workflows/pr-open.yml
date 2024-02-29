@@ -8,8 +8,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # https://github.com/bcgov-nr/action-builder-ghcr
+  builds:
+    name: Builds
+    runs-on: ubuntu-22.04
+    strategy:
+      matrix:
+        package: [migrations, backend, frontend]
+    timeout-minutes: 10
+    steps:
+      - uses: bcgov-nr/action-builder-ghcr@v2.0.2
+        id: builds
+        with:
+          keep_versions: 50
+          package: ${{ matrix.package }}
+          repository: bcgov/quickstart-openshift
+          tag: ${{ github.event.number }}
+          tag_fallback: latest
+
   deploys:
     name: Deploys
+    needs: [builds]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,4 +39,3 @@ jobs:
           oc_namespace: ${{ secrets.OC_NAMESPACE }}
           oc_token: ${{ secrets.OC_TOKEN }}
           release: ${{ github.event.number }}
-          tag: latest
