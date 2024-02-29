@@ -35,7 +35,6 @@ jobs:
       - name: Deploys
         uses: ./
         with:
-          development: true
           oc_namespace: ${{ secrets.OC_NAMESPACE }}
           oc_token: ${{ secrets.OC_TOKEN }}
           release: ${{ github.event.number }}
