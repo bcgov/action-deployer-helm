@@ -22,10 +22,6 @@ inputs:
     description: Cleanup, too aggressive for higher level environments
     default: false
     required: false
-  development:
-    description: Development environment?  Adds pvc cleanup; [true|false]
-    default: false
-    required: false
   directory:
     description: Chart directory
     default:  'charts/${{ github.event.repository.name }}'
@@ -126,20 +122,13 @@ runs:
             helm uninstall ${{ steps.vars.outputs.repo_release }}
         fi
 
-    # Development=true removes Bitnami pvc, which existing  up jobs, but causes downtime
-    - if: inputs.development == 'true'
-      shell: bash
-      run: |
-        # Delete Bitnami PVC before deployment
-        oc delete pvc data-${{ steps.vars.outputs.repo_release }}-bitnami-pg-0 || true
-
     # Package Helm chart
     - uses: actions/checkout@v4
     - shell: bash
       working-directory: ${{ inputs.directory }}
       run: |
         # Package Helm chart
-        helm package -u . --app-version="${{ steps.vars.outputs.tag }}" --version=${{ steps.vars.outputs.tag }}
+        helm package -u . --app-version="${{ steps.vars.outputs.tag }}" --version=${{ steps.pr.outputs.pr }}
 
     # Deploy Helm chart
     - shell: bash
