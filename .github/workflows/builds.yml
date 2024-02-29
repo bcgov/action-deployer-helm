@@ -3,6 +3,11 @@ name: Build Packages
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Specify a tag to build; defaults to latest'
+        default: latest
+        type: string
 
 concurrency:
   group: ${{ github.workflow }}
@@ -24,4 +29,4 @@ jobs:
           keep_versions: 50
           package: ${{ matrix.package }}
           repository: bcgov/quickstart-openshift
-          tag: latest
+          tag: ${{ inputs.tag }}
